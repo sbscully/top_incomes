@@ -1,0 +1,73 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use feature 'say';
+
+use JSON::XS;
+use File::Slurp;
+use Data::Dumper;
+
+sub first   { $_[0] }
+sub rest    { @_[1..scalar(@_)-1] }
+sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
+
+sub invert {
+  my $data = shift;
+  my $inverted = [];
+
+  foreach my $i ( (0..scalar(@$data)-1) ) {
+    foreach my $j ( (0..scalar(@{ $data->[1] })-1) ) {
+      $inverted->[$j] //= [];
+      $inverted->[$j][$i] = $data->[$i][$j];
+    }
+  }
+
+  return $inverted;
+}
+
+sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
+
+sub hashref { my %hash = flatten @_; \%hash }
+
+sub arrayref { [ @_ ] }
+
+sub compact { grep { defined $_->[1] } @_ }
+
+sub process_row {
+  my ($headers, $row) = @_;
+
+  hashref compact zip($headers, $row)
+}
+
+sub process_table {
+  my ($headers, $table) = @_;
+
+  map { process_row($headers, $_) } @$table;
+}
+
+sub deref {
+  my $ref = ref $_[0];
+
+  if ( $ref eq 'ARRAY' ) {
+    @{ $_[0] };
+  }
+  elsif ( $ref eq 'HASH' ) {
+    %{ $_[0] };
+  }
+  else {
+    @_;
+  }
+}
+
+my $in = 'data/top_incomes.json';
+my $workbook = decode_json read_file $in;
+
+my $cell = $workbook->[1]{cell}; # 'Series-layout A'
+my @data = rest rest deref invert $cell;
+
+my @headers = flatten first @data; # extract headers
+my @table = rest @data;
+
+say Dumper first process_table(\@headers, \@table);

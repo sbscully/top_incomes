@@ -1,0 +1,25 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+use feature 'say';
+
+use Spreadsheet::Read;
+use JSON::XS;
+use File::Slurp;
+use Data::Dumper;
+
+my $in = 'data/top_incomes.xlsx';
+my $out = 'data/top_incomes.json';
+
+my $data = ReadData($in);
+
+my $meta = shift @$data;
+say Dumper($meta);
+
+if (-f $out) {
+  unlink $out;
+}
+
+write_file($out, encode_json($data));
