@@ -84,19 +84,22 @@ sub rest { my $skip = shift // 1; @_[$skip..scalar(@_)-1] }
 
 ################################################################
 
-# Takes table headers and a row, and turns them into a compact hashref
+# Take table headers and a row, and turn them into a compact hashref
 # with the table headers as keys.
 sub row_to_hashref { pipeline @_, qw(zip flatten compact_hash hashref) }
 
-# Takes the Spreadsheet::Read output of the "Capital in the
-# 21st Century" (Pikkety) xlsx file and extracts the relevant data.
+# Take the Spreadsheet::Read output of the "Capital in the
+# 21st Century" (Pikkety) xlsx file and extract the relevant data.
 #
 # The table is transposed so that each row corresponds to a set
 # of data points for one country for one year.
 #
 # The first two rows are skipped because they are just id fields
 # that we are not interested in.
-sub process_top_incomes {
+#
+# Finally the data is transformed from a table into an array of
+# hashrefs.
+sub transform_top_incomes {
   say 'parsing input...';
   my @table = pipeline @_,
     'read_file',
@@ -111,11 +114,15 @@ sub process_top_incomes {
   map { row_to_hashref($headers, $_) } @table;
 }
 
+sub pretty_encode_json {
+  JSON::XS->new->utf8->pretty(1)->encode([ @_ ]);
+}
+
 {
   my $in = 'data/converted.json';
   my $out = 'data/transformed.json';
 
   if (-f $out) { unlink $out }
 
-  write_file $out, JSON::XS->new->utf8->pretty(1)->encode([ process_top_incomes($in) ]);
+  write_file $out, pretty_encode_json transform_top_incomes($in);
 }
