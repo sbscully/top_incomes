@@ -11,8 +11,6 @@ use Data::Dumper;
 
 sub inspect { say Dumper @_ }
 
-sub second { $_[1] }
-
 sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
 
 sub compose {
@@ -36,7 +34,9 @@ sub pipeline (+@) {
   compose(@subs)->(@$args)
 }
 
-sub transpose_table {
+sub curry { my ($sub, @args) = @_; sub { $sub->(@args, @_) } }
+
+sub transpose {
   my $data = \@_;
   my $inverted = [];
 
@@ -52,44 +52,63 @@ sub transpose_table {
 
 sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
 
-sub pairs_to_hashref { my %hash = flatten @_; \%hash }
+# Takes a hash and returns a copy where the key/value pairs where the
+# value was undefined have been removed
+sub compact_hash {
+  return unless defined $_[0];
+  my %hash = @_;
 
-sub compact_pairs { grep { defined $_->[1] } @_ }
-
-sub deref {
-  my $ref = ref $_[0];
-
-  if    ( $ref eq 'ARRAY' ) { @{ $_[0] }; }
-  elsif ( $ref eq 'HASH' )  { %{ $_[0] }; }
-  else                      { @_; }
+  map { defined($hash{$_}) ? ($_ => $hash{$_}) : () } keys %hash
 }
 
-sub fetch { my ($key) = @_; sub { my %hash = @_; $hash{$key} } }
+sub hashref { { @_ } }
 
-# Skip the specified number of rows of a table and return the rest
-sub skip_rows { my $skip = shift; sub { @_[$skip..scalar(@_)-1] } }
+# Derefere  nce if passed a lone hashref or arrayref
+sub deref {
+  my $ref = ref $_[0];
+  my $single = scalar(@_) eq 1;
 
-# Takes the name of a JSON file, extracts and decodes the data
-sub parse_json { pipeline @_, qw(read_file decode_json deref) }
+  if    ( $ref eq 'ARRAY' && $single ) { @{ $_[0] }; }
+  elsif ( $ref eq 'HASH' && $single )  { %{ $_[0] }; }
+  else                                 { @_; }
+}
 
-# Takes the output of Spreadsheet::Read and extracts the raw spreadsheet table
-sub extract_table { pipeline @_, 'second', 'deref', fetch('cell'), 'deref' }
+# A wrapper around hash key access to allow it to be pipelined
+sub fetch { my ($key) = @_; sub { my %hash = deref @_; deref $hash{$key} } }
 
-# Takes the Spreadsheet::Read output of the Capital in the
-# 21st Century (Pikkety) xlsx file and extract the relevant data
-sub parse_top_incomes_data { pipeline @_, 'extract_table', 'transpose_table', skip_rows(2) }
+# A wrapper around array access to allow it to be pipelined
+sub at { my ($index) = @_; sub { my @array = deref @_; deref $array[$index] } }
 
-# Takes table headers and a row, and turns them into a compact[1] hashref
-# with the table headers as keys
+# Skip the specified number of elements of an array and return the rest
+sub rest { my $skip = shift // 1; @_[$skip..scalar(@_)-1] }
+
+################################################################
+
+# Takes table headers and a row, and turns them into a compact hashref
+# with the table headers as keys.
+sub row_to_hashref { pipeline @_, qw(zip flatten compact_hash hashref) }
+
+# Takes the Spreadsheet::Read output of the "Capital in the
+# 21st Century" (Pikkety) xlsx file and extracts the relevant data.
 #
-# [1] a hashref where keys which have undefined values have been removed
-sub row_to_hashref { pipeline @_, qw(zip compact_pairs pairs_to_hashref) }
-
+# The table is transposed so that each row corresponds to a set
+# of data points for one country for one year.
+#
+# The first two rows are skipped because they are just id fields
+# that we are not interested in.
 sub process_top_incomes {
-  my @table = pipeline @_, qw(parse_json parse_top_incomes_data);
-  my $headers = shift @table;
+  say 'parsing input...';
+  my @table = pipeline @_,
+    'read_file',
+    'decode_json',
+    at(1),
+    fetch('cell'),
+    'transpose',
+    curry(\&rest, 2);
 
-  map { row_to_hashref($headers, $_) } @table
+  say 'transforming data...';
+  my $headers = shift @table;
+  map { row_to_hashref($headers, $_) } @table;
 }
 
 {
@@ -98,5 +117,5 @@ sub process_top_incomes {
 
   if (-f $out) { unlink $out }
 
-  write_file $out, JSON::XS->new->utf8->pretty(1)->encode([process_top_incomes($in)]);
+  write_file $out, JSON::XS->new->utf8->pretty(1)->encode([ process_top_incomes($in) ]);
 }
