@@ -3,9 +3,8 @@
 use strict;
 use warnings;
 
-use feature 'say';
-
 use lib 'lib';
+use feature 'say';
 
 use File::Slurp;
 use Pipeline;
@@ -27,8 +26,6 @@ use JSON::Processor;
 
   say "complete";
 }
-
-## TRANSFORM ##
 
 sub transform_top_incomes {
   # Munge the Spreadsheet::Read output to get at the raw data table
