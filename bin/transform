@@ -8,8 +8,8 @@ use feature 'say';
 
 use File::Slurp;
 use Pipeline;
-use Pipeline::Traverse qw(fetch at hashref arrayref);
-use Pipeline::List qw(transpose zip_refs_compact flatten);
+use Pipeline::Traverse qw(hashref);
+use Pipeline::List qw(zip_refs_compact flatten);
 use JSON::Processor;
 
 {
@@ -28,18 +28,12 @@ use JSON::Processor;
 }
 
 sub transform_top_incomes {
-  my @spreadsheet = @_;
-
-  say "parsing spreadsheet...";
-  my @table = extract_table(@spreadsheet);
+  my @table = @{ $_[0] };
 
   say "transforming $#table rows...";
   my $headers = shift @table;
   map { row_to_hashref($headers, $_) } @table;
 }
-
-# Munge the Spreadsheet::Read output to get at the raw data table
-sub extract_table { pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 } }
 
 # Turn a spreadsheet table row into a hashrefs, with the table headers as keys
 sub row_to_hashref { pipeline @_, qw(zip_refs_compact flatten hashref) }

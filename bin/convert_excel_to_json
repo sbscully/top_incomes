@@ -3,21 +3,30 @@
 use strict;
 use warnings;
 
+use lib 'lib';
 use feature 'say';
 
 use Spreadsheet::Read;
 use JSON::XS;
 use File::Slurp;
 use Data::Dumper;
+use Pipeline;
+use Pipeline::Traverse qw(fetch at hashref);
+use Pipeline::List qw(transpose);
 
 my $in = 'data/raw.xlsx';
 my $out = 'data/converted.json';
 
-my $data = ReadData($in);
+my @data = @{ ReadData($in) };
 
-my $meta = shift @$data;
+my $meta = shift @data;
 say Dumper($meta);
 
 if (-f $out) { unlink $out }
 
-write_file($out, encode_json($data));
+my @table = extract_table(@data);
+
+write_file($out, encode_json(\@table));
+
+# Munge the Spreadsheet::Read output to get at the raw data table
+sub extract_table { pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 } }
