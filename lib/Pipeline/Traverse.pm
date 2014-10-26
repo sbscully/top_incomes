@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-package Traverse;
+package Pipeline::Traverse;
 
 use Exporter 'import';
 our @EXPORT_OK = qw(fetch at hashref arrayref);

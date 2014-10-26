@@ -9,8 +9,8 @@ use lib 'lib';
 
 use File::Slurp;
 use Pipeline;
+use Pipeline::Traverse qw(fetch at hashref arrayref);
 use JSON::Processor;
-use Traverse qw(fetch at hashref arrayref);
 use List::EvenMoreUtils qw(transpose zip_refs_compact flatten);
 
 {
