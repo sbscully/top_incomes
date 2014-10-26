@@ -3,24 +3,23 @@ use warnings;
 
 package List::EvenMoreUtils;
 
-use Pipeline;
 use List::Util qw(max);
 
 use Exporter 'import';
-our @EXPORT_OK = qw(zip_refs transpose zip_refs_compact);
+our @EXPORT_OK = qw(flatten zip_refs transpose zip_refs_compact);
+
+sub flatten { map { @$_ } @_ }
 
 sub zip_refs {
-  my @refs = @_;
-  my $length = max map { scalar @$_ } @refs;
+  my $max = -1;
+  ($max < $#$_) && ($max = $#$_) for @_;
 
-  map { my $index = $_; [ map { $_->[$index] } @refs ] } (0 .. $length)
+  map { my $ix = $_; [ map $_->[$ix], @_ ] } 0..$max
 }
 *transpose = \&zip_refs;
 
-sub zip_refs_compact { pipeline @_, qw(zip_refs compact_zipped flatten_zipped) }
+sub zip_refs_compact { compact_zipped(zip_refs(@_)) }
 
 sub compact_zipped { grep { !grep { !defined } @$_ } @_ }
-
-sub flatten_zipped { map { @$_ } @_ }
 
 1;

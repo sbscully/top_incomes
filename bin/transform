@@ -12,7 +12,7 @@ use lib 'lib';
 use File::Slurp;
 use Pipeline;
 use JSON::Processor;
-use List::EvenMoreUtils qw(zip_refs_compact transpose);
+use List::EvenMoreUtils qw(zip_refs_compact transpose flatten);
 use Traverse qw(fetch at hashref arrayref);
 
 {
@@ -44,4 +44,4 @@ sub transform_top_incomes {
   map { row_to_hashref($headers, $_) } @table;
 }
 
-sub row_to_hashref { pipeline @_, qw(zip_refs_compact hashref) }
+sub row_to_hashref { pipeline @_, qw(zip_refs_compact flatten hashref) }
