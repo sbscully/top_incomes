@@ -4,16 +4,14 @@ use strict;
 use warnings;
 
 use feature 'say';
-use Data::Dumper;
-sub inspect { say Dumper @_ }
 
 use lib 'lib';
 
 use File::Slurp;
 use Pipeline;
 use JSON::Processor;
-use List::EvenMoreUtils qw(zip_refs_compact transpose flatten);
 use Traverse qw(fetch at hashref arrayref);
+use List::EvenMoreUtils qw(transpose zip_refs_compact flatten);
 
 {
   my $in = 'data/converted.json';
