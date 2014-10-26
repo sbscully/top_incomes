@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 
-package List::EvenMoreUtils;
+package Pipeline::List;
 
 use List::Util qw(max);
 

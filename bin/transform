@@ -10,8 +10,8 @@ use lib 'lib';
 use File::Slurp;
 use Pipeline;
 use Pipeline::Traverse qw(fetch at hashref arrayref);
+use Pipeline::List qw(transpose zip_refs_compact flatten);
 use JSON::Processor;
-use List::EvenMoreUtils qw(transpose zip_refs_compact flatten);
 
 {
   my $in = 'data/converted.json';
