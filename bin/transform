@@ -15,12 +15,6 @@ use JSON::Processor;
 use Matrix qw(transpose);
 use Traverse qw(fetch at hashref);
 
-sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
-
-sub compact_pairs { grep { defined $_->[0] && defined $_->[1] } @_ }
-
-sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
-
 {
   my $in = 'data/converted.json';
   my $out = 'data/transformed.json';
@@ -45,3 +39,9 @@ sub transform_top_incomes {
 }
 
 sub row_to_hashref { pipeline @_, qw(zip compact_pairs flatten hashref) }
+
+sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
+
+sub compact_pairs { grep { defined $_->[0] && defined $_->[1] } @_ }
+
+sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
