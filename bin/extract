@@ -11,22 +11,31 @@ use JSON::XS;
 use File::Slurp;
 use Data::Dumper;
 use Pipeline;
-use Pipeline::Traverse qw(fetch at hashref);
+use Pipeline::Traverse qw(fetch at hashref arrayref);
 use Pipeline::List qw(transpose);
 
-my $in = 'data/raw.xlsx';
-my $out = 'data/converted.json';
+{
+  my $in = 'data/raw.xlsx';
+  my $out = 'data/extracted.json';
 
-my @data = @{ ReadData($in) };
+  say "extracting JSON file $out from excel file $in...";
 
-my $meta = shift @data;
-say Dumper($meta);
+  if (-f $out) { unlink $out }
 
-if (-f $out) { unlink $out }
+  pipeline ReadData($in),
+    'remove_meta_data',
+    'extract_table',
+    'encode_json',
+    curry('write_file', $out);
 
-my @table = extract_table(@data);
+  say "extract stage complete"
+}
 
-write_file($out, encode_json(\@table));
+sub remove_meta_data {
+  my ($meta, @rest) = @_; say Dumper($meta); @rest
+}
 
 # Munge the Spreadsheet::Read output to get at the raw data table
-sub extract_table { pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 } }
+sub extract_table {
+  pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 }, 'arrayref'
+}

@@ -13,7 +13,7 @@ use Pipeline::List qw(zip_refs_compact flatten);
 use JSON::Processor;
 
 {
-  my $in = 'data/converted.json';
+  my $in = 'data/extracted.json';
   my $out = 'data/transformed.json';
 
   if (-f $out) { unlink $out }
@@ -24,7 +24,7 @@ use JSON::Processor;
   say "writing output to $out...";
   write_file($out, $json);
 
-  say "complete";
+  say "transform stage complete";
 }
 
 sub transform_top_incomes {

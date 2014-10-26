@@ -4,7 +4,7 @@ use warnings;
 package Pipeline;
 
 use Exporter 'import';
-our @EXPORT = qw(compose pipeline);
+our @EXPORT = qw(compose pipeline curry);
 
 sub compose {
   my $g = pop;
@@ -25,6 +25,14 @@ sub pipeline (+@) {
   @subs = map { bind_ref($_, caller) } @subs;
 
   compose(@subs)->(@$args)
+}
+
+sub curry {
+  my ($sub, @args) = @_;
+
+  $sub = bind_ref($sub, caller);
+
+  sub { $sub->(@args, @_) }
 }
 
 sub bind_ref {
