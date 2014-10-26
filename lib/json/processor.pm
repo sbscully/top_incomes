@@ -11,7 +11,7 @@ our @EXPORT = qw(process_json);
 
 sub process_json (&@) {
   my $sub = shift;
-  pipeline(@_, 'decode_json', $sub, 'pretty_encode_json')
+  pipeline @_, 'decode_json', $sub, 'pretty_encode_json'
 }
 
 sub pretty_encode_json { JSON::XS->new->utf8->pretty(1)->encode(@_) }
