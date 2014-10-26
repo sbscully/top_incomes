@@ -18,8 +18,6 @@ sub zip_refs {
 }
 *transpose = \&zip_refs;
 
-sub zip_refs_compact { compact_zipped(zip_refs(@_)) }
-
-sub compact_zipped { grep { !grep { !defined } @$_ } @_ }
+sub zip_refs_compact { grep { !grep { !defined } @$_ } zip_refs(@_) }
 
 1;
