@@ -4,11 +4,15 @@ use warnings;
 package Traverse;
 
 use Exporter 'import';
-our @EXPORT_OK = qw(fetch at);
+our @EXPORT_OK = qw(fetch at hashref arrayref);
 
 sub fetch { my ($key) = @_; sub { my %hash = deref(@_); deref($hash{$key}) } }
 
 sub at { my ($index) = @_; sub { my @array = deref(@_); deref($array[$index]) } }
+
+sub hashref { my %hash = @_; \%hash }
+
+sub arrayref { my @array = @_; \@array }
 
 sub deref {
   my $ref = ref $_[0];

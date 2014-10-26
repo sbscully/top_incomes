@@ -13,29 +13,13 @@ use File::Slurp;
 use Pipeline;
 use JSON::Processor;
 use Matrix qw(transpose);
-use Traverse qw(fetch at);
+use Traverse qw(fetch at hashref);
 
 sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
 
 sub compact_pairs { grep { defined $_->[0] && defined $_->[1] } @_ }
 
 sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
-
-sub hashref { my %hash = @_; \%hash }
-
-# Sample output row:
-#   {
-#      "Number of tax units-married couples &amp; single adults" : "22127.693",
-#      "Income control" : "1682.08332",
-#      "Price index" : "0.0101303",
-#      "Average income per tax unit-married couples &amp; single adults" : "7503.9",
-#      "Top 0.05-0.01% income share-married couples &amp; single adults" : "4.18",
-#      "Year" : "1908.0",
-#      "Country" : "United Kingdom",
-#      "Top 0.05% income share-married couples &amp; single adults" : "8.22",
-#      "Top 0.01% average income-married couples &amp; single adults" : "3031574.98",
-#      "Top 0.01% income share-married couples &amp; single adults" : "4.04"
-#   }
 
 {
   my $in = 'data/converted.json';
@@ -47,28 +31,17 @@ sub hashref { my %hash = @_; \%hash }
   write_file($out, $json);
 }
 
-# Take the Spreadsheet::Read output of the "Capital in the
-# 21st Century" (Pikkety) xlsx file and extract the relevant data.
-#
-# The table is transposed so that each row corresponds to a set
-# of data points for one country for one year.
-#
-# The first two rows are skipped because they are just id fields
-# that we are not interested in.
-#
-# Finally the data is transformed from a table into an array of
-# hashrefs.
 sub transform_top_incomes {
-  say "parsing input...";
+  # Munge the Spreadsheet::Read output to get at the raw data table
+  say 'parsing input...';
   my @table = pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 };
 
-  my $count = scalar @table;
-  say "transforming $count rows...";
+  say "transforming $#table rows...";
 
+  # Turn the data table rows into an array of hashrefs, with the
+  # table headers as keys
   my $headers = shift @table;
   map { row_to_hashref($headers, $_) } @table;
 }
 
-# Take table headers and a row, and turn them into a compact hashref
-# with the table headers as keys.
 sub row_to_hashref { pipeline @_, qw(zip compact_pairs flatten hashref) }
