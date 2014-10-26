@@ -21,21 +21,25 @@ use Traverse qw(fetch at hashref arrayref);
 
   if (-f $out) { unlink $out }
 
+  say "reading $in...";
   my $json = process_json { [ transform_top_incomes(@_) ] } read_file($in);
+
+  say "writing output to $out...";
   write_file($out, $json);
+
+  say "complete";
 }
 
 ## TRANSFORM ##
 
 sub transform_top_incomes {
   # Munge the Spreadsheet::Read output to get at the raw data table
-  say 'parsing input...';
+  say "parsing spreadsheet format...";
   my @table = pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 };
-
-  say "transforming $#table rows...";
 
   # Turn the data table rows into an array of
   # hashrefs, with the table headers as keys
+  say "transforming $#table rows...";
   my $headers = shift @table;
   map { row_to_hashref($headers, $_) } @table;
 }
