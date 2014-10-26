@@ -4,14 +4,11 @@ use strict;
 use warnings;
 
 use feature 'say';
+use Data::Dumper;
+sub inspect { say Dumper @_ }
 
 use JSON::XS;
 use File::Slurp;
-use Data::Dumper;
-
-sub inspect { say Dumper @_ }
-
-sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
 
 sub compose {
   my $g = pop;
@@ -34,8 +31,6 @@ sub pipeline (+@) {
   compose(@subs)->(@$args)
 }
 
-sub curry { my ($sub, @args) = @_; sub { $sub->(@args, @_) } }
-
 sub transpose {
   my $data = \@_;
   my $inverted = [];
@@ -52,16 +47,13 @@ sub transpose {
 
 sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
 
-# Takes a hash and returns a copy where the key/value pairs where the
-# value was undefined have been removed
-sub compact_hash {
-  return unless defined $_[0];
-  my %hash = @_;
+# Takes an array of pairs and filters out a pair if either
+# of the elements is undefined
+sub compact_pairs { grep { defined $_->[0] && defined $_->[1] } @_ }
 
-  map { defined($hash{$_}) ? ($_ => $hash{$_}) : () } keys %hash
-}
+sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
 
-sub hashref { { @_ } }
+sub hashref { my %hash = @_; \%hash }
 
 # Derefere  nce if passed a lone hashref or arrayref
 sub deref {
@@ -79,44 +71,7 @@ sub fetch { my ($key) = @_; sub { my %hash = deref @_; deref $hash{$key} } }
 # A wrapper around array access to allow it to be pipelined
 sub at { my ($index) = @_; sub { my @array = deref @_; deref $array[$index] } }
 
-# Skip the specified number of elements of an array and return the rest
-sub rest { my $skip = shift // 1; @_[$skip..scalar(@_)-1] }
-
 ################################################################
-
-# Take table headers and a row, and turn them into a compact hashref
-# with the table headers as keys.
-sub row_to_hashref { pipeline @_, qw(zip flatten compact_hash hashref) }
-
-# Take the Spreadsheet::Read output of the "Capital in the
-# 21st Century" (Pikkety) xlsx file and extract the relevant data.
-#
-# The table is transposed so that each row corresponds to a set
-# of data points for one country for one year.
-#
-# The first two rows are skipped because they are just id fields
-# that we are not interested in.
-#
-# Finally the data is transformed from a table into an array of
-# hashrefs.
-sub transform_top_incomes {
-  say 'parsing input...';
-  my @table = pipeline @_,
-    'read_file',
-    'decode_json',
-    at(1),
-    fetch('cell'),
-    'transpose',
-    curry(\&rest, 2);
-
-  say 'transforming data...';
-  my $headers = shift @table;
-  map { row_to_hashref($headers, $_) } @table;
-}
-
-sub pretty_encode_json {
-  JSON::XS->new->utf8->pretty(1)->encode([ @_ ]);
-}
 
 {
   my $in = 'data/converted.json';
@@ -124,5 +79,53 @@ sub pretty_encode_json {
 
   if (-f $out) { unlink $out }
 
-  write_file $out, pretty_encode_json transform_top_incomes($in);
+  my $json = pretty_encode_json([ transform_top_incomes($in) ]);
+  write_file $out, $json;
 }
+
+# Take the Spreadsheet::Read output of the "Capital in the
+# 21st Century" (Pikkety) xlsx file and extract the relevant data.
+#
+# The table is transposed so that each row corresponds to a set
+# of data points for one country for one year.
+#
+#   {
+#      "Number of tax units-married couples &amp; single adults" : "22127.693",
+#      "Income control" : "1682.08332",
+#      "Price index" : "0.0101303",
+#      "Average income per tax unit-married couples &amp; single adults" : "7503.9",
+#      "Top 0.05-0.01% income share-married couples &amp; single adults" : "4.18",
+#      "Year" : "1908.0",
+#      "Country" : "United Kingdom",
+#      "Top 0.05% income share-married couples &amp; single adults" : "8.22",
+#      "Top 0.01% average income-married couples &amp; single adults" : "3031574.98",
+#      "Top 0.01% income share-married couples &amp; single adults" : "4.04"
+#   }
+#
+# The first two rows are skipped because they are just id fields
+# that we are not interested in.
+#
+# Finally the data is transformed from a table into an array of
+# hashrefs.
+sub transform_top_incomes {
+  say "parsing input...";
+  my @table = pipeline @_,
+    'read_file',
+    'decode_json',
+    at(1),
+    fetch('cell'),
+    'transpose',
+    sub { splice @_, 2 };
+
+  my $count = scalar @table;
+  say "transforming $count rows...";
+
+  my $headers = shift @table;
+  map { row_to_hashref($headers, $_) } @table;
+}
+
+# Take table headers and a row, and turn them into a compact hashref
+# with the table headers as keys.
+sub row_to_hashref { pipeline @_, qw(zip compact_pairs flatten hashref) }
+
+sub pretty_encode_json { JSON::XS->new->utf8->pretty(1)->encode(@_) }
