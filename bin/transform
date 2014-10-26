@@ -28,15 +28,18 @@ use JSON::Processor;
 }
 
 sub transform_top_incomes {
-  # Munge the Spreadsheet::Read output to get at the raw data table
-  say "parsing spreadsheet format...";
-  my @table = pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 };
+  my @spreadsheet = @_;
 
-  # Turn the data table rows into an array of
-  # hashrefs, with the table headers as keys
+  say "parsing spreadsheet...";
+  my @table = extract_table(@spreadsheet);
+
   say "transforming $#table rows...";
   my $headers = shift @table;
   map { row_to_hashref($headers, $_) } @table;
 }
 
+# Munge the Spreadsheet::Read output to get at the raw data table
+sub extract_table { pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 } }
+
+# Turn a spreadsheet table row into a hashrefs, with the table headers as keys
 sub row_to_hashref { pipeline @_, qw(zip_refs_compact flatten hashref) }
