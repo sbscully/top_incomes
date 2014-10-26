@@ -28,13 +28,15 @@ sub pipeline (+@) {
 }
 
 sub bind_ref {
-  my ($sub, @caller) = @_;
-  return $sub if ref $sub eq 'CODE';
+  my ($sub, $package) = @_;
 
-  my $package = shift @caller;
-  my $name = $package . '::' . $_;
-
-  \&$name
+  if (ref $sub eq 'CODE') {
+    $sub
+  }
+  else {
+    $sub = join '::', $package, $sub;
+    \&$sub
+  }
 }
 
 1;

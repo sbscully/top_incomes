@@ -12,8 +12,8 @@ use lib 'lib';
 use File::Slurp;
 use Pipeline;
 use JSON::Processor;
-use Matrix qw(transpose);
-use Traverse qw(fetch at hashref);
+use List::EvenMoreUtils qw(zip_refs_compact transpose);
+use Traverse qw(fetch at hashref arrayref);
 
 {
   my $in = 'data/converted.json';
@@ -25,6 +25,8 @@ use Traverse qw(fetch at hashref);
   write_file($out, $json);
 }
 
+## TRANSFORM ##
+
 sub transform_top_incomes {
   # Munge the Spreadsheet::Read output to get at the raw data table
   say 'parsing input...';
@@ -32,16 +34,10 @@ sub transform_top_incomes {
 
   say "transforming $#table rows...";
 
-  # Turn the data table rows into an array of hashrefs, with the
-  # table headers as keys
+  # Turn the data table rows into an array of
+  # hashrefs, with the table headers as keys
   my $headers = shift @table;
   map { row_to_hashref($headers, $_) } @table;
 }
 
-sub row_to_hashref { pipeline @_, qw(zip compact_pairs flatten hashref) }
-
-sub zip { my ($a, $b) = @_; map { [ $a->[$_], $b->[$_] ] } (0..scalar(@$a)-1) }
-
-sub compact_pairs { grep { defined $_->[0] && defined $_->[1] } @_ }
-
-sub flatten { map { ref $_ eq 'ARRAY' ? flatten(@$_) : $_ } @_ }
+sub row_to_hashref { pipeline @_, qw(zip_refs_compact hashref) }
