@@ -22,10 +22,8 @@ use Pipeline::List qw(transpose);
 
   if (-f $out) { unlink $out }
 
-  pipeline ReadData($in),
-    'remove_meta_data',
-    'extract_table',
-    'encode_json',
+  pipeline ReadData($in) =>
+    qw(remove_meta_data extract_table encode_json),
     curry('write_file', $out);
 
   say "extract stage complete"
@@ -37,5 +35,5 @@ sub remove_meta_data {
 
 # Munge the Spreadsheet::Read output to get at the raw data table
 sub extract_table {
-  pipeline @_, at(1), fetch('cell'), 'transpose', sub { splice @_, 2 }, 'arrayref'
+  pipeline @_ => at(1), fetch('cell'), 'transpose', sub { [ splice @_, 2 ] }
 }
