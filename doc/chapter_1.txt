@@ -1,0 +1,22 @@
+Chapter 1
+
+Applicative functions
+• map
+• reduce
+• sort
+• grep
+• tap
+
+Higher order functions
+• curry/apply
+• compose
+• pipeline
+
+Data structure traversal
+• fetch/at
+• deref/arrayref/hashref
+• zip/transpose
+• identity
+• tap
+
+• repeat/take/cycle

@@ -22,6 +22,7 @@ sub compose {
 sub pipeline (+@) {
   my ($args, @subs) = @_;
 
+  $args = ref $args eq 'ARRAY' ? $args : [ $args ];
   @subs = map { bind_ref($_, caller) } @subs;
 
   compose(@subs)->(@$args)

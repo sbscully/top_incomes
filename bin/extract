@@ -22,11 +22,13 @@ use Pipeline::List qw(transpose);
 
   if (-f $out) { unlink $out }
 
-  pipeline ReadData($in) =>
-    qw(remove_meta_data extract_table encode_json),
-    curry('write_file', $out);
+  pipeline ReadData($in) => 'convert_table_to_json', curry('write_file', $out);
 
   say "extract stage complete"
+}
+
+sub convert_table_to_json {
+  pipeline @_ => qw(remove_meta_data extract_table encode_json);
 }
 
 sub remove_meta_data {
