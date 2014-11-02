@@ -7,3 +7,95 @@ use lib 'lib';
 use feature 'say';
 
 use Chart::Clicker;
+use Chart::Clicker::Data::DataSet;
+use Chart::Clicker::Data::Series;
+
+use JSON::XS;
+use File::Slurp;
+use Data::Dumper;
+use List::Util qw(all);
+
+use Pipeline;
+use Pipeline::Traverse qw(deref arrayref hashref);
+use Chain;
+
+sub concat { my @array = @_; chomp(@array); join "\n", @array; }
+
+sub contains {
+  my $hashref = shift;
+  my %opts = @_;
+
+  all { defined $hashref->{$_} && ($hashref->{$_} eq $opts{$_})  } keys %opts
+}
+
+sub where {
+  my $opts = shift;
+  my @array = @_;
+
+  grep { contains($_, %$opts) } @array
+}
+
+sub where_defined {
+  my $key = shift;
+
+  grep { defined $_->{$key} } @_
+}
+
+sub pluck {
+  my $key = shift;
+  my @array = @_;
+
+  map { $_->{$key} } @array
+}
+
+{
+  my $in = 'data/transformed.json';
+  my $out = 'data/graph.png';
+
+  say "drawing $out";
+
+  my $dataset = pipeline $in =>
+    'decode_json_file',
+    curry('where', { Country => 'France' }),
+    curry('where_defined', 'Top 10% income share'),
+    sub { grep { $_->{Year} >= 1910 } @_ },
+    to_chart_clicker( keys => 'Year', values => 'Top 10% income share' );
+
+  my $chart = Chart::Clicker->new(width => 500, height => 250, format => 'png');
+
+  if (-f $out) { unlink $out }
+
+  chain($chart)->add_to_datasets($dataset)->write_output($out);
+
+  say "draw stage complete";
+}
+
+sub decode_json_file {
+  pipeline @_ => qw(read_file concat decode_json deref);
+}
+
+sub to_chart_clicker {
+  my %opts = @_;
+
+  sub {
+    pipeline @_ =>
+      curry('chart_clicker_options', \%opts),
+      'chart_clicker_series',
+      'chart_clicker_dataset';
+  }
+}
+
+sub chart_clicker_options {
+  my $opts = shift;
+  my @array = @_;
+
+  (
+    keys => [ pluck $opts->{keys}, @array ],
+    values => [ pluck $opts->{values}, @array ],
+  );
+}
+
+sub chart_clicker_series { my %opts = @_; Chart::Clicker::Data::Series->new(%opts) }
+
+sub chart_clicker_dataset { Chart::Clicker::Data::DataSet->new(series => \@_) }
+

@@ -4,12 +4,14 @@ use warnings;
 package Pipeline;
 
 use Exporter 'import';
-our @EXPORT = qw(compose pipeline curry);
+our @EXPORT = qw(compose pipeline curry apply);
 
 sub compose {
   my $g = pop;
   my $f = pop;
   my @subs = @_;
+
+  die 'two or more code references required' unless $f;
 
   if ( @subs ) {
     sub { $g->( compose(@subs, $f)->(@_) ) }
@@ -34,6 +36,14 @@ sub curry {
   $sub = bind_ref($sub, caller);
 
   sub { $sub->(@args, @_) }
+}
+
+sub apply {
+  my ($sub, @args) = @_;
+
+  $sub = bind_ref($sub, caller);
+
+  sub { $sub->(@_, @args) }
 }
 
 sub bind_ref {

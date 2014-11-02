@@ -4,7 +4,7 @@ use warnings;
 package Pipeline::Traverse;
 
 use Exporter 'import';
-our @EXPORT_OK = qw(fetch at hashref arrayref);
+our @EXPORT_OK = qw(fetch at hashref arrayref deref);
 
 sub fetch { my ($key) = @_; sub { my %hash = deref(@_); deref($hash{$key}) } }
 

@@ -11,6 +11,7 @@ Higher order functions
 • curry/apply
 • compose
 • pipeline
+• chain
 
 Data structure traversal
 • fetch/at
