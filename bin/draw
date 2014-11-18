@@ -27,7 +27,7 @@ use Chain;
 
   my $dataset = pipeline $in =>
     'decode_json_file',
-    chart_dataset_builder(country => 'United Kingdom', dimension => 'Top 0.1% average income', from => 1910);
+    chart_dataset_builder(country => 'United States', dimension => 'Top 1% income share', from => 1910);
 
   if (-f $out) { unlink $out }
 
