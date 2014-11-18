@@ -35,5 +35,5 @@ sub transform_top_incomes {
   map { row_to_hashref($headers, $_) } @table;
 }
 
-# Turn a spreadsheet table row into a hashrefs, with the table headers as keys
+# Turn a spreadsheet table row into a hashref, with the table headers as keys
 sub row_to_hashref { pipeline @_ => qw(zip_refs_compact flatten hashref) }

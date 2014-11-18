@@ -10,43 +10,14 @@ use Chart::Clicker;
 use Chart::Clicker::Data::DataSet;
 use Chart::Clicker::Data::Series;
 
-use JSON::XS;
 use File::Slurp;
-use Data::Dumper;
-use List::Util qw(all);
+use JSON::XS;
 
 use Pipeline;
-use Pipeline::Traverse qw(deref arrayref hashref);
+use Pipeline::Traverse qw(deref);
+use Pipeline::Hash qw(where where_defined pluck);
+use Pipeline::List qw(concat);
 use Chain;
-
-sub concat { my @array = @_; chomp(@array); join "\n", @array; }
-
-sub contains {
-  my $hashref = shift;
-  my %opts = @_;
-
-  all { defined $hashref->{$_} && ($hashref->{$_} eq $opts{$_})  } keys %opts
-}
-
-sub where {
-  my $opts = shift;
-  my @array = @_;
-
-  grep { contains($_, %$opts) } @array
-}
-
-sub where_defined {
-  my $key = shift;
-
-  grep { defined $_->{$key} } @_
-}
-
-sub pluck {
-  my $key = shift;
-  my @array = @_;
-
-  map { $_->{$key} } @array
-}
 
 {
   my $in = 'data/transformed.json';
@@ -56,22 +27,32 @@ sub pluck {
 
   my $dataset = pipeline $in =>
     'decode_json_file',
-    curry('where', { Country => 'France' }),
-    curry('where_defined', 'Top 10% income share'),
-    sub { grep { $_->{Year} >= 1910 } @_ },
-    to_chart_clicker( keys => 'Year', values => 'Top 10% income share' );
-
-  my $chart = Chart::Clicker->new(width => 500, height => 250, format => 'png');
+    chart_dataset_builder(country => 'United Kingdom', dimension => 'Top 0.1% average income', from => 1910);
 
   if (-f $out) { unlink $out }
 
-  chain($chart)->add_to_datasets($dataset)->write_output($out);
+  chain('Chart::Clicker')
+    ->new(width => 500, height => 250, format => 'png')
+    ->add_to_datasets($dataset)
+    ->write_output($out);
 
   say "draw stage complete";
 }
 
 sub decode_json_file {
-  pipeline @_ => qw(read_file concat decode_json deref);
+  pipeline @_ => qw(read_file concat decode_json deref)
+}
+
+sub chart_dataset_builder {
+  my %opts = @_;
+
+  sub {
+    pipeline @_ =>
+      curry('where', { Country => $opts{country} }),
+      curry('where_defined', $opts{dimension}),
+      sub { grep { $_->{Year} >= $opts{from} } @_ },
+      to_chart_clicker(keys => 'Year', values => $opts{dimension});
+  }
 }
 
 sub to_chart_clicker {
@@ -95,7 +76,7 @@ sub chart_clicker_options {
   );
 }
 
-sub chart_clicker_series { my %opts = @_; Chart::Clicker::Data::Series->new(%opts) }
+sub chart_clicker_series { Chart::Clicker::Data::Series->new(@_) }
 
 sub chart_clicker_dataset { Chart::Clicker::Data::DataSet->new(series => \@_) }
 

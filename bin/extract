@@ -11,7 +11,7 @@ use JSON::XS;
 use File::Slurp;
 use Data::Dumper;
 use Pipeline;
-use Pipeline::Traverse qw(fetch at hashref arrayref);
+use Pipeline::Traverse qw(fetch at);
 use Pipeline::List qw(transpose);
 
 {

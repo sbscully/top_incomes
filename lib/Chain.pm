@@ -6,14 +6,21 @@ package Chain;
 use Exporter 'import';
 our @EXPORT = qw(chain);
 
-sub chain { Chain::Object->new(@_) }
+sub chain { Chain::Object->_new(@_) }
 
 package Chain::Object {
-  sub new {
+  sub _new {
     my $class = shift;
     my $object = shift;
 
     bless { object => $object }, $class;
+  }
+
+  sub new {
+    my $self = shift;
+
+    $self->{object} = $self->{object}->new(@_);
+    $self
   }
 
   sub value {
